@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
 
 ## OUTPUT
 
-
+![alt text](img3/read.png)
 
 
 # RESULT:
