@@ -28,12 +28,14 @@ Execute the C Program for the desired output.
 #include <sys/ipc.h>
 #include <sys/msg.h>
 
-#define MAX_TEXT 100
+#define MAX_TEXT 512
+#define QUEUE_KEY_PATH "/tmp" // Any existing path
+#define PROJ_ID 65            // Project identifier
 
 // Define message structure
 struct message {
-    long msg_type;
-    char msg_text[MAX_TEXT];
+    long msg_type;            // Message type must be > 0
+    char msg_text[MAX_TEXT];  // Message data
 };
 
 int main() {
@@ -41,34 +43,34 @@ int main() {
     int msgid;
     struct message msg;
 
-    // Generate unique key (same key must be used by sender)
-    key = ftok("msgqueuefile", 65);  // File "msgqueuefile" must exist
+    // Generate unique key
+    key = ftok(QUEUE_KEY_PATH, PROJ_ID);
     if (key == -1) {
         perror("ftok");
         exit(EXIT_FAILURE);
     }
 
-    // Get message queue id
+    // Access message queue
     msgid = msgget(key, 0666 | IPC_CREAT);
     if (msgid == -1) {
         perror("msgget");
         exit(EXIT_FAILURE);
     }
 
-    // Receive message of type 1
-    if (msgrcv(msgid, &msg, sizeof(msg.msg_text), 1, 0) == -1) {
+    printf("Waiting for message...\n");
+
+    // Receive message
+    if (msgrcv(msgid, &msg, sizeof(msg.msg_text), 0, 0) == -1) {
         perror("msgrcv");
         exit(EXIT_FAILURE);
     }
 
-    // Display received message
+    // Display the message
     printf("Received message: %s\n", msg.msg_text);
-
-    // Optional: Delete the message queue
-    msgctl(msgid, IPC_RMID, NULL);
 
     return 0;
 }
+
 ```
 
 
