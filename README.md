@@ -22,54 +22,62 @@ Execute the C Program for the desired output.
 
 ## C program that receives a message from message queue and display them
 ```
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/ipc.h>
-#include <sys/msg.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+    #include <sys/ipc.h>
+    #include <sys/msg.h>
 
-#define MAX_TEXT 512
-#define QUEUE_KEY_PATH "/tmp" // Any existing path
-#define PROJ_ID 65            // Project identifier
+    struct mesg_buffer {
+        long mesg_type;
+        char mesg_text[100];
+    } message;
 
-// Define message structure
-struct message {
-    long msg_type;            // Message type must be > 0
-    char msg_text[MAX_TEXT];  // Message data
-};
+    int main(int argc, char *argv[]) {
+        key_t key;
+        int msgid;
 
-int main() {
-    key_t key;
-    int msgid;
-    struct message msg;
+        if (argc != 2) {
+            printf("Usage: %s writer|reader\n", argv[0]);
+            return 1;
+        }
 
-    // Generate unique key
-    key = ftok(QUEUE_KEY_PATH, PROJ_ID);
-    if (key == -1) {
-        perror("ftok");
-        exit(EXIT_FAILURE);
+        key = ftok("progfile", 65);
+        if (key == -1) {
+            perror("ftok");
+            return 1;
+        }
+
+        msgid = msgget(key, 0666 | IPC_CREAT);
+        if (msgid == -1) {
+            perror("msgget");
+            return 1;
+        }
+
+        if (strcmp(argv[1], "writer") == 0) {
+            message.mesg_type = 1;
+            printf("Enter Message: ");
+            fgets(message.mesg_text, sizeof(message.mesg_text), stdin);
+            message.mesg_text[strcspn(message.mesg_text, "\n")] = 0; // remove newline
+            if (msgsnd(msgid, &message, sizeof(message), 0) == -1) {
+                perror("msgsnd");
+                return 1;
+            }
+            printf("Message sent: %s\n", message.mesg_text);
+        } else if (strcmp(argv[1], "reader") == 0) {
+            if (msgrcv(msgid, &message, sizeof(message), 1, 0) == -1) {
+                perror("msgrcv");
+                return 1;
+            }
+            printf("Message received: %s\n", message.mesg_text);
+            msgctl(msgid, IPC_RMID, NULL); // destroy queue
+        } else {
+            printf("Invalid argument. Use writer or reader.\n");
+            return 1;
+        }
+
+        return 0;
     }
-
-    // Access message queue
-    msgid = msgget(key, 0666 | IPC_CREAT);
-    if (msgid == -1) {
-        perror("msgget");
-        exit(EXIT_FAILURE);
-    }
-
-    printf("Waiting for message...\n");
-
-    // Receive message
-    if (msgrcv(msgid, &msg, sizeof(msg.msg_text), 0, 0) == -1) {
-        perror("msgrcv");
-        exit(EXIT_FAILURE);
-    }
-
-    // Display the message
-    printf("Received message: %s\n", msg.msg_text);
-
-    return 0;
-}
 
 ```
 
