@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
 
 ## OUTPUT
 
-
+[text](img04)
 
 
 # RESULT:
